@@ -1,21 +1,40 @@
-import puppeteer, { Browser } from "puppeteer";
+import chromium from "@sparticuz/chromium";
+import type { Browser } from "puppeteer-core";
+import puppeteer from "puppeteer-core";
 
 let browserInstance: Browser | null = null;
 let activeJobs = 0;
 const MAX_CONCURRENT_JOBS = Number(process.env.PDF_MAX_CONCURRENCY || 2);
 const jobQueue: Array<() => void> = [];
 
+chromium.setHeadlessMode = true;
+chromium.setGraphicsMode = false;
+
+const resolveExecutablePath = async (): Promise<string> => {
+  if (process.env.CHROME_EXECUTABLE_PATH) {
+    return process.env.CHROME_EXECUTABLE_PATH;
+  }
+  const candidate = await chromium.executablePath();
+  if (!candidate) {
+    throw new Error(
+      "Unable to resolve Chromium executable. Set CHROME_EXECUTABLE_PATH."
+    );
+  }
+  return candidate;
+};
+
 async function getBrowser(): Promise<Browser> {
   if (browserInstance) return browserInstance;
-  // Launch a single shared headless browser
+
+  const executablePath = await resolveExecutablePath();
+  const headless =
+    typeof chromium.headless === "boolean" ? chromium.headless : true;
+
   browserInstance = await puppeteer.launch({
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-gpu",
-    ],
+    args: chromium.args,
+    defaultViewport: chromium.defaultViewport,
+    executablePath,
+    headless,
   });
   return browserInstance;
 }

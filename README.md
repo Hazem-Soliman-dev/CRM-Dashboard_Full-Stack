@@ -41,7 +41,7 @@ ERP-CRM-Project/
 
 3. **Set up environment variables**
    ```bash
-   cp .env.example .env
+   cp env.example .env
    ```
    
    Edit `.env` and set at minimum:
@@ -85,7 +85,8 @@ npm run seed
 ### Root Level
 
 - `npm run dev` - Start both backend and frontend in development mode
-- `npm run build` - Build both backend and frontend for production
+- `npm run build` - Build the frontend bundle for Vercel/static hosting
+- `npm run build:all` - Build backend (tsc) + frontend (Vite) locally
 - `npm run seed` - Run database seed script
 - `npm run install:all` - Install dependencies for all workspaces
 
@@ -133,29 +134,33 @@ This project is configured for seamless deployment on Vercel as a monorepo.
 
 2. **Configure Environment Variables**
    
-   In Vercel dashboard, add these environment variables:
-   - `JWT_SECRET` (required) - Your secret key for JWT tokens
-   - `JWT_EXPIRES_IN` (optional) - Token expiration, default: `7d`
-   - `JWT_REFRESH_EXPIRES_IN` (optional) - Refresh token expiration, default: `30d`
-   - `VITE_API_BASE_URL` (optional) - Frontend API URL, default: `/api/v1`
+   In Vercel dashboard (Development/Preview/Production scopes), add:
+   - `JWT_SECRET`
+   - `LIBSQL_URL` / `LIBSQL_AUTH_TOKEN`
+   - `FRONTEND_URL`, `PRINT_BASE_URL`
+   - `VITE_API_BASE_URL`
+   Then sync them locally with `vercel env pull .env`.
 
 3. **Deploy**
    - Vercel will automatically build and deploy on every push to main branch
    - The first deployment will initialize the database with seed data
+   - Use `vercel dev` locally to mirror the monorepo build/runtime before pushing
 
 ### Deployment Architecture
 
 - **API Routes**: `/api/*` → Backend serverless functions
 - **Static Files**: All other routes → Frontend React app
-- **Database**: SQLite stored in `/tmp` (ephemeral on Vercel)
+- **Database**: Turso/libSQL (persistent) with automatic seeding on cold start
 
-**Note**: On Vercel, the SQLite database is ephemeral and resets on each deployment. For production use, consider migrating to a persistent database service like Vercel Postgres, Supabase, or PlanetScale.
+**Note**: The built-in compatibility layer still supports local SQLite for development while pointing production deployments at libSQL.
 
 ## 🔐 Environment Variables
 
 ### Required
 
 - `JWT_SECRET` - Secret key for JWT token signing (minimum 32 characters)
+- `LIBSQL_URL` - Turso/libSQL database URL
+- `LIBSQL_AUTH_TOKEN` - Auth token for the libSQL database
 
 ### Optional
 
@@ -165,6 +170,10 @@ This project is configured for seamless deployment on Vercel as a monorepo.
 - `PORT` - Server port (default: `5000`)
 - `VITE_API_BASE_URL` - Frontend API base URL (default: `/api/v1` in production)
 - `FORCE_DEMO_SEED` - Force reseed data (set to `1` to enable)
+- `FRONTEND_URL` - Origin allowed in REST responses (used by invoices, PDFs)
+- `PRINT_BASE_URL` - Absolute base URL for print-ready pages
+- `PDF_MAX_CONCURRENCY` - Limits parallel headless-browser PDF jobs (default `2`)
+- `CHROME_EXECUTABLE_PATH` - Local Chrome/Chromium path for PDF rendering during development
 - `FORCE_SCHEMA_INIT` - Force schema reinitialization (set to `1` to enable)
 
 ## 📊 Database
@@ -177,14 +186,34 @@ The project uses SQLite for simplicity and ease of deployment.
 - Seed data loads automatically
 
 ### Production (Vercel)
-- Database file: `/tmp/database.db`
-- Ephemeral (resets on each deployment)
-- Automatically seeded on cold start
+- Recommended: Turso/libSQL with `LIBSQL_URL` + `LIBSQL_AUTH_TOKEN`
+- The bundled compatibility layer still works locally with `better-sqlite3`
+- Automatically seeds the persistent database on first cold start
+
+### Configuring libSQL / Turso
+1. Install the Turso CLI and create a database:
+   ```bash
+   turso db create erp-crm-production
+   turso db tokens create erp-crm-production
+   ```
+2. Copy the connection string into `LIBSQL_URL` and the token into `LIBSQL_AUTH_TOKEN`.
+3. Run the local seed script once to upload schema/data:
+   ```bash
+   npm run db:seed --workspace backend
+   ```
+4. Deploy to Vercel with the two environment variables defined for Development/Preview/Production scopes.
 
 ### Schema Management
 - Schema is defined in `backend/sqlite_schema.sql`
 - Automatically initialized on first run
 - Migrations handled automatically
+
+## 🖨️ PDF Rendering
+
+- Uses `puppeteer-core` + `@sparticuz/chromium` for Vercel compatibility.
+- For local development, set `CHROME_EXECUTABLE_PATH` to your Chrome/Chromium binary (or install the Chromium binary provided by the `@sparticuz/chromium` package).
+- Tune `PDF_MAX_CONCURRENCY` to limit parallel jobs when exporting large reports.
+- The dedicated `backend/api/reports.ts` function is configured with higher memory/time limits on Vercel.
 
 ## 🔑 Authentication
 
@@ -273,6 +302,13 @@ For issues and questions:
 2. Review API documentation in `backend/README.md`
 3. Check server logs for detailed error messages
 4. Verify environment variables are set correctly
+
+## 🪄 Fallback: Split Repositories
+
+If you prefer hosting the backend outside of Vercel:
+1. Move the `backend/` directory into its own repository and add a Dockerfile or Procfile for your target platform (Render/Railway/Fly).
+2. Reuse the same `env.example` file—only `VITE_API_BASE_URL` in the frontend needs to point to the hosted API (e.g. `https://api.example.com/api/v1`).
+3. In Vercel, remove the `/api/*` route and deploy only the frontend workspace. All REST calls will proxy to the remote backend via the configured `VITE_API_BASE_URL`.
 
 ## 🎯 Next Steps
 

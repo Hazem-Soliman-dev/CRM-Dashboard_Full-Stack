@@ -2,15 +2,19 @@
   "version": 2,
   "buildCommand": "npm run build",
   "outputDirectory": "frontend/dist",
-  "installCommand": "npm install",
+  "installCommand": "npm install --workspaces --include-workspace-root",
   "framework": null,
   "builds": [
     {
-      "src": "backend/api/index.ts",
+      "src": "backend/api/**/*.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/v1/reports/(.*)",
+      "dest": "backend/api/reports.ts"
+    },
     {
       "src": "/api/(.*)",
       "dest": "backend/api/index.ts"
@@ -27,12 +31,20 @@
     }
   ],
   "functions": {
-    "backend/api/index.ts": {
-      "runtime": "nodejs18.x"
+    "backend/api/reports.ts": {
+      "runtime": "nodejs18.x",
+      "memory": 1536,
+      "maxDuration": 90,
+      "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
+    },
+    "backend/api/**/*.ts": {
+      "runtime": "nodejs18.x",
+      "memory": 1024,
+      "maxDuration": 60,
+      "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
     }
   },
   "env": {
     "NODE_ENV": "production"
   }
 }
-

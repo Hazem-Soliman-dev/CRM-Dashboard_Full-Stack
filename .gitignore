@@ -6,7 +6,13 @@ node_modules/
 # Build outputs
 dist/
 build/
+frontend/dist/
+backend/dist/
 *.tsbuildinfo
+
+# Vercel
+.vercel/
+vercel*.log
 
 # Database files
 *.db

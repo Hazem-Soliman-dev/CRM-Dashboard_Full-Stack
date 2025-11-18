@@ -42,7 +42,8 @@ router.get("/:id/export/pdf", authenticate, async (req: Request, res: Response) 
 		res.writeHead(200, {
 			"Content-Type": "application/pdf",
 			"Content-Disposition": `attachment; filename="${filename}"`,
-			"Content-Length": pdf.length.toString()
+			"Content-Length": pdf.length.toString(),
+			"Cache-Control": "private, max-age=0, must-revalidate"
 		});
 		return res.end(pdf);
 	} catch (err: any) {
@@ -85,6 +86,7 @@ router.post("/:id/export/excel", authenticate, async (req: Request, res: Respons
 			"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 		);
 		res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+		res.setHeader("Cache-Control", "private, max-age=0, must-revalidate");
 		return res.status(200).send(xlsx);
 	} catch (err) {
 		console.error("Report Excel export failed:", err);
@@ -114,6 +116,7 @@ router.post("/:id/export/csv", authenticate, async (req: Request, res: Response)
 		
 		res.setHeader("Content-Type", "text/csv; charset=utf-8");
 		res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+		res.setHeader("Cache-Control", "private, max-age=0, must-revalidate");
 		return res.status(200).send(csv);
 	} catch (err) {
 		console.error("Report CSV export failed:", err);

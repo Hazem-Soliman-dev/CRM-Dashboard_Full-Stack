@@ -1,4 +1,4 @@
-import getDatabase from '../config/database';
+import { db } from '../config/database';
 import { AppError, NotFoundError } from '../utils/AppError';
 
 export interface Activity {
@@ -51,7 +51,6 @@ export class ActivityModel {
     try {
       const activity_id = this.generateActivityId();
 
-      const db = getDatabase();
       const query = `
         INSERT INTO activities (
           activity_id, entity_type, entity_id, activity_type,
@@ -59,7 +58,7 @@ export class ActivityModel {
         ) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))
       `;
 
-      db.prepare(query).run(
+      const result = await db.run(query, [
         activity_id,
         data.entity_type,
         data.entity_id,
@@ -67,10 +66,13 @@ export class ActivityModel {
         data.description,
         data.details ? JSON.stringify(data.details) : null,
         data.performed_by_id
-      );
+      ]);
 
-      const insertId = db.prepare("SELECT last_insert_rowid() as id").get() as any;
-      return await this.findActivityById(insertId.id.toString());
+      const insertId = result.lastInsertRowid;
+      if (!insertId) {
+        throw new Error('Failed to insert activity');
+      }
+      return await this.findActivityById(insertId.toString());
     } catch (error) {
       console.error('Error logging activity:', error);
       throw new AppError('Failed to log activity', 500);
@@ -80,7 +82,6 @@ export class ActivityModel {
   // Find activity by ID
   static async findActivityById(id: string): Promise<Activity> {
     try {
-      const db = getDatabase();
       const query = `
         SELECT a.*, u.full_name as performed_by_name, u.email as performed_by_email
         FROM activities a
@@ -88,7 +89,7 @@ export class ActivityModel {
         WHERE a.id = ?
       `;
 
-      const activity = db.prepare(query).get(id) as any;
+      const activity = await db.queryOne<any>(query, [id]);
 
       if (!activity) {
         throw new NotFoundError('Activity not found');
@@ -114,14 +115,16 @@ export class ActivityModel {
       const limit = filters.limit || 50;
       const offset = (page - 1) * limit;
 
-      const db = getDatabase();
       // Count query
       const countQuery = `
         SELECT COUNT(*) as total
         FROM activities
         WHERE entity_type = ? AND entity_id = ?
       `;
-      const countResult = db.prepare(countQuery).get(entityType, entityId) as any;
+      const countResult = await db.queryOne<{ total: number }>(
+        countQuery,
+        [entityType, entityId]
+      );
       const total = countResult?.total || 0;
 
       // Main query
@@ -134,7 +137,12 @@ export class ActivityModel {
         LIMIT ? OFFSET ?
       `;
 
-      const activities = db.prepare(query).all(entityType, entityId, limit, offset).map((row: any) => this.formatActivity(row));
+      const activities = (await db.query<any>(query, [
+        entityType,
+        entityId,
+        limit,
+        offset
+      ])).map((row) => this.formatActivity(row));
 
       return { activities, total };
     } catch (error) {
@@ -152,14 +160,16 @@ export class ActivityModel {
       const limit = filters.limit || 50;
       const offset = (page - 1) * limit;
 
-      const db = getDatabase();
       // Count query
       const countQuery = `
         SELECT COUNT(*) as total
         FROM activities
         WHERE performed_by_id = ?
       `;
-      const countResult = db.prepare(countQuery).get(userId) as any;
+      const countResult = await db.queryOne<{ total: number }>(
+        countQuery,
+        [userId]
+      );
       const total = countResult?.total || 0;
 
       // Main query
@@ -172,7 +182,11 @@ export class ActivityModel {
         LIMIT ? OFFSET ?
       `;
 
-      const activities = db.prepare(query).all(userId, limit, offset).map((row: any) => this.formatActivity(row));
+      const activities = (await db.query<any>(query, [
+        userId,
+        limit,
+        offset
+      ])).map((row) => this.formatActivity(row));
 
       return { activities, total };
     } catch (error) {
@@ -222,7 +236,6 @@ export class ActivityModel {
         ? `WHERE ${whereConditions.join(' AND ')}`
         : '';
 
-      const db = getDatabase();
       // Count query
       const countQuery = `
         SELECT COUNT(*) as total
@@ -232,7 +245,10 @@ export class ActivityModel {
       
       // Filter out undefined values for count query
       const countParams = queryParams.filter(p => p !== undefined);
-      const countResult = db.prepare(countQuery).get(...countParams) as any;
+      const countResult = await db.queryOne<{ total: number }>(
+        countQuery,
+        countParams
+      );
       const total = countResult?.total || 0;
 
       // Main query
@@ -251,7 +267,9 @@ export class ActivityModel {
 
       // Combine query params with limit and offset, filtering out undefined
       const allParams = [...queryParams.filter(p => p !== undefined), limit, offset];
-      const activities = db.prepare(query).all(...allParams).map((row: any) => this.formatActivity(row));
+      const activities = (await db.query<any>(query, allParams)).map((row) =>
+        this.formatActivity(row)
+      );
 
       return { activities, total };
     } catch (error) {
