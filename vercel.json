@@ -32,13 +32,13 @@
   ],
   "functions": {
     "backend/api/reports.ts": {
-      "runtime": "nodejs18.x",
+      "runtime": "nodejs",
       "memory": 1536,
       "maxDuration": 90,
       "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
     },
     "backend/api/**/*.ts": {
-      "runtime": "nodejs18.x",
+      "runtime": "nodejs",
       "memory": 1024,
       "maxDuration": 60,
       "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
