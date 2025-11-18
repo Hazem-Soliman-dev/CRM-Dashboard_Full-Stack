@@ -30,10 +30,11 @@ export const createReservationDocument = asyncHandler(async (req: Request, res: 
   
   // Validate required fields
   if (!req.body.file_data || !req.body.document_name || !req.body.document_type) {
-    return res.status(400).json({
+    res.status(400).json({
       success: false,
       message: 'file_data, document_name, and document_type are required'
     });
+    return;
   }
 
   const documentData: CreateReservationDocumentData = {

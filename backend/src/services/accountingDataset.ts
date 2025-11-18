@@ -64,7 +64,6 @@ export async function getAccountingRows(
 	userRole: string = 'admin',
 	userId: string = ''
 ): Promise<AccountingRow[]> {
-	const db = getDatabase();
 	const dateRange = getDateRange(filters);
 	
 	// Build reservation filters
@@ -192,7 +191,7 @@ export async function getFinancialReportData(
 }
 
 async function getOverviewReport(
-	filters: AccountingFilters,
+	_filters: AccountingFilters,
 	dateRange: { start?: string; end?: string },
 	userRole: string,
 	userId: string
@@ -253,7 +252,7 @@ async function getOverviewReport(
 }
 
 async function getProfitAnalysisReport(
-	filters: AccountingFilters,
+	_filters: AccountingFilters,
 	dateRange: { start?: string; end?: string },
 	userRole: string,
 	userId: string
@@ -288,12 +287,11 @@ async function getProfitAnalysisReport(
 }
 
 async function getAgentPerformanceReport(
-	filters: AccountingFilters,
+	_filters: AccountingFilters,
 	dateRange: { start?: string; end?: string },
 	userRole: string,
 	userId: string
 ): Promise<AccountingRow[]> {
-	const db = getDatabase();
 	const reservationFilters: ReservationFilters = {
 		date_from: dateRange.start,
 		date_to: dateRange.end,
@@ -309,7 +307,6 @@ async function getAgentPerformanceReport(
 	const byAgent: Record<string, { bookings: number; revenue: number }> = {};
 	reservations.forEach(r => {
 		const agentId = r.created_by;
-		const agentName = r.created_by_user?.full_name || 'Unknown';
 		if (!byAgent[agentId]) {
 			byAgent[agentId] = { bookings: 0, revenue: 0 };
 		}
@@ -329,7 +326,7 @@ async function getAgentPerformanceReport(
 }
 
 async function getOutstandingBalancesReport(
-	filters: AccountingFilters,
+	_filters: AccountingFilters,
 	dateRange: { start?: string; end?: string },
 	userRole: string,
 	userId: string
