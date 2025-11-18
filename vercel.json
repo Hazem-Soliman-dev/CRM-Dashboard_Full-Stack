@@ -1,9 +1,5 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
-  "outputDirectory": "frontend/dist",
-  "installCommand": "npm install --workspaces --include-workspace-root",
-  "framework": null,
   "routes": [
     {
       "src": "/api/v1/reports/(.*)",
