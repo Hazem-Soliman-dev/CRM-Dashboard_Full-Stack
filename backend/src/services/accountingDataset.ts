@@ -1,4 +1,3 @@
-import getDatabase from '../config/database';
 import { ReservationModel, ReservationFilters } from '../models/reservationModel';
 import { PaymentModel, PaymentFilters } from '../models/paymentModel';
 import { InvoiceModel, InvoiceFilters } from '../models/invoiceModel';
