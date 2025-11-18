@@ -4,12 +4,6 @@
   "outputDirectory": "frontend/dist",
   "installCommand": "npm install --workspaces --include-workspace-root",
   "framework": null,
-  "builds": [
-    {
-      "src": "backend/api/**/*.ts",
-      "use": "@vercel/node"
-    }
-  ],
   "routes": [
     {
       "src": "/api/v1/reports/(.*)",
@@ -35,13 +29,19 @@
       "runtime": "nodejs",
       "memory": 1536,
       "maxDuration": 90,
-      "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
+      "includeFiles": [
+        "backend/sqlite_schema.sql",
+        "backend/migrations/*.sql"
+      ]
     },
     "backend/api/**/*.ts": {
       "runtime": "nodejs",
       "memory": 1024,
       "maxDuration": 60,
-      "includeFiles": ["backend/sqlite_schema.sql", "backend/migrations/*.sql"]
+      "includeFiles": [
+        "backend/sqlite_schema.sql",
+        "backend/migrations/*.sql"
+      ]
     }
   },
   "env": {
