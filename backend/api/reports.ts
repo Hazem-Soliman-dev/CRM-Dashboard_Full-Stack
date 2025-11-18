@@ -4,7 +4,6 @@ export const config = {
   runtime: "nodejs",
   memory: 1536,
   maxDuration: 60,
-  regions: ["iad1", "fra1", "sfo1"],
 };
 
 export default vercelAppHandler;
